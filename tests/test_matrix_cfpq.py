@@ -31,10 +31,6 @@ def test_hellings_based_cfpq():
             (1, 2, {"label": "b"}),
         ]
     )
-    ambiguous = pyformlang.cfg.CFG.from_text("""S -> A S B | $
-                                                           A -> a
-                                                           B -> b""")
-
     unambigus = pyformlang.cfg.CFG.from_text("""S -> A S B S | $
                                                            A -> a
                                                            B -> b""")
@@ -45,4 +41,5 @@ def test_hellings_based_cfpq():
         final_nodes={2},
     )
 
+    assert cfpq_result_lecture_graph == {(3, 0), (3, 1)}
     assert cfpq_result_one_way_graph == {(0, 2)}
