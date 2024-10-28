@@ -32,11 +32,11 @@ def test_hellings_based_cfpq():
         ]
     )
     ambiguous = pyformlang.cfg.CFG.from_text("""S -> A S B | $
-                                                           A -> a  
+                                                           A -> a
                                                            B -> b""")
 
     unambigus = pyformlang.cfg.CFG.from_text("""S -> A S B S | $
-                                                           A -> a  
+                                                           A -> a
                                                            B -> b""")
     cfpq_result_one_way_graph = matrix_cfpq.matrix_based_cfpq(
         unambigus,

@@ -71,7 +71,6 @@ def _matrix_based_cfpq(cfg, graph):
         for nonterminal, bool_matrix in bool_decomposition.items()
         for i, j in zip(*bool_matrix.nonzero())
     }
-    print(count)
     return result
 
 
