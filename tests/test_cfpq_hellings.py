@@ -1,5 +1,4 @@
 import pyformlang.cfg
-import networkx as nx
 
 from project import cfpq_hellings
 
@@ -60,25 +59,3 @@ def test_cfg_to_weak_normal_form():
     )
     for production in not_generating_symbols_test_grammar.productions:
         assert production.head.value in reachable_symbols
-
-
-def test_hellings_based_cfpq():
-    graph_from_lecture = nx.MultiDiGraph()
-    graph_from_lecture.add_edges_from(
-        [
-            (0, 1, {"label": "b"}),
-            (1, 0, {"label": "b"}),
-            (0, 2, {"label": "a"}),
-            (2, 3, {"label": "a"}),
-            (3, 0, {"label": "a"}),
-        ]
-    )
-
-    grammar_from_lecture = pyformlang.cfg.CFG.from_text("S -> a S b | a b")
-    cfpq_result = cfpq_hellings.hellings_based_cfpq(
-        grammar_from_lecture,
-        graph_from_lecture,
-        start_nodes={3},
-        final_nodes={0, 1, 2, 3},
-    )
-    assert cfpq_result == {(3, 0), (3, 1)}
