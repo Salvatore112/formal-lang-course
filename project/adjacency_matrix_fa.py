@@ -1,17 +1,22 @@
-from typing import Iterable, Dict
-from pyformlang.finite_automaton import NondeterministicFiniteAutomaton, Symbol
-from scipy.sparse import kron, csr_matrix, diags
-from project.finite_automata_lib import regex_to_dfa, graph_to_nfa
-from networkx import MultiDiGraph
-
 import numpy as np
+
+from typing import Dict, Iterable
+from pyformlang.finite_automaton import NondeterministicFiniteAutomaton, State, Symbol
+from scipy.sparse import csc_matrix, eye, kron, csr_matrix
+from project.finite_automata_lib import graph_to_nfa, regex_to_dfa
+from networkx import MultiDiGraph
+from pyformlang.rsa.recursive_automaton import RecursiveAutomaton
 
 
 class AdjacencyMatrixFA:
-    def __init__(self, nfa: NondeterministicFiniteAutomaton):
+    def __init__(
+        self, nfa: NondeterministicFiniteAutomaton | RecursiveAutomaton
+    ) -> None:
         if nfa is None:
             self.start_states_id = set()
             self.final_states_id = set()
+            self.start_states = set()
+            self.final_states = set()
             self.states_count = 0
             self.state_id = {}
             self.id_state = {}
@@ -20,15 +25,17 @@ class AdjacencyMatrixFA:
         self.start_states = nfa.start_states
         self.final_states = nfa.final_states
 
+        self.states_count = len(nfa.states)
         self.id_state = {state: index for state, index in enumerate(nfa.states)}
         self.state_id = {state: index for index, state in enumerate(nfa.states)}
+
         self.start_states_id = {
             self.state_id[st] for st in nfa.states if st in nfa.start_states
         }
         self.final_states_id = {
             self.state_id[st] for st in nfa.states if st in nfa.final_states
         }
-        self.states_count = len(nfa.states)
+
         self.bool_decomposition = self.build_bool_decomposition(nfa)
 
     def build_bool_decomposition(
@@ -77,25 +84,23 @@ class AdjacencyMatrixFA:
                     return False
         return True
 
-    def get_transitive_closure(self) -> csr_matrix:
-        if not self.bool_decomposition:
-            return diags(
-                [1] * self.states_count,
-                offsets=0,
-                shape=(self.states_count, self.states_count),
-                format="csr",
-            ).astype(bool)
+    def get_transitive_closure(self) -> csc_matrix:
+        identity_matrix = eye(self.states_count, dtype=bool)
+        adjacency_matrix = csc_matrix(identity_matrix)
 
-        adj_matrix = sum(self.bool_decomposition.values())
-        adj_matrix.setdiag(True)
+        for symbol in self.bool_decomposition:
+            adjacency_matrix += self.bool_decomposition[symbol]
 
-        adj_matrix = adj_matrix.toarray()
-        previous_matrix = None
-        while not np.array_equal(previous_matrix, adj_matrix):
-            previous_matrix = adj_matrix
-            adj_matrix = np.dot(adj_matrix, adj_matrix)
+        current_power = adjacency_matrix
+        exponent = self.states_count
 
-        return adj_matrix
+        while exponent != 0:
+            if exponent % 2 == 1:
+                closure_matrix = np.dot(adjacency_matrix, current_power)
+            current_power = np.dot(current_power, current_power)
+            exponent //= 2
+
+        return closure_matrix
 
 
 def intersect_automata(
@@ -105,6 +110,7 @@ def intersect_automata(
     new_symbols = (
         automaton1.bool_decomposition.keys() & automaton2.bool_decomposition.keys()
     )
+
     for symbol in new_symbols:
         intersection.bool_decomposition[symbol] = kron(
             automaton1.bool_decomposition[symbol],
@@ -116,19 +122,23 @@ def intersect_automata(
     for first_state, first_state_id in automaton1.state_id.items():
         for second_state, second_state_id in automaton2.state_id.items():
             new_state_id = first_state_id * automaton2.states_count + second_state_id
-            intersection.state_id[(first_state, second_state)] = new_state_id
+            state = State((first_state.value, second_state.value))
+            intersection.state_id[state] = new_state_id
             if (
-                first_state_id in automaton1.start_states_id
-                and second_state_id in automaton2.start_states_id
+                first_state in automaton1.start_states
+                and second_state in automaton2.start_states
             ):
+                intersection.start_states.add(state)
                 intersection.start_states_id.add(new_state_id)
-
             if (
-                first_state_id in automaton1.final_states_id
-                and second_state_id in automaton2.final_states_id
+                first_state in automaton1.final_states
+                and second_state in automaton2.final_states
             ):
+                intersection.final_states.add(state)
                 intersection.final_states_id.add(new_state_id)
-
+    intersection.id_state = {
+        index: state for state, index in intersection.state_id.items()
+    }
     return intersection
 
 
