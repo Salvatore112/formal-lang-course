@@ -1,11 +1,11 @@
-from typing import Dict, Set, Tuple, List
-from pyformlang import rsa, cfg as pycfg
-from pyformlang.finite_automaton import NondeterministicFiniteAutomaton, Symbol, State
-from scipy import sparse
-from scipy.sparse import csc_array
 import networkx as nx
+
+from scipy.sparse import csc_array
+from pyformlang import rsa, cfg as pycfg
+from pyformlang.finite_automaton import NondeterministicFiniteAutomaton
 from project.adjacency_matrix_fa import AdjacencyMatrixFA, intersect_automata
 from project.finite_automata_lib import graph_to_nfa
+from typing import Set, Tuple
 
 
 def cfg_to_rsm(cfg: pycfg.CFG) -> rsa.RecursiveAutomaton:
