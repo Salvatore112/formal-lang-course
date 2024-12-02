@@ -1,6 +1,6 @@
 grammar Language;
 
-prog: stmt *;
+prog: stmt*;
 
 stmt: bind | add | remove | declare;
 
