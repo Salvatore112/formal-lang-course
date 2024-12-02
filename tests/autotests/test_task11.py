@@ -19,7 +19,11 @@ import ProgramGenerator
 
 # Fix import statements in try block to run tests
 try:
-    from project.task11 import program_to_tree, nodes_count, tree_to_program
+    from project.graph_query_language.parser import (
+        program_to_tree,
+        nodes_count,
+        tree_to_program,
+    )
 except ImportError:
     pytestmark = pytest.mark.skip("Task 11 is not ready to test!")
 
