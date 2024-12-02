@@ -21,8 +21,21 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Set up java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
       - name: Sync dependencies
         run: rye sync
+
+      - name: Set up antlr4
+        run: pip install antlr4-tools
+
+      - name: Create parser
+        working-directory: project/graph_query_language
+        run: antlr4 Language.g4 -Dlanguage=Python3
 
       - name: Run tests
         run: python scripts/run_tests.py
