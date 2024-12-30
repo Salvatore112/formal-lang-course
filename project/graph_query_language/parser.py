@@ -1,24 +1,35 @@
-from antlr4 import (
-    InputStream,
-    CommonTokenStream,
-    ParserRuleContext,
-    TerminalNode,
-)
+import antlr4
 from project.graph_query_language.LanguageLexer import LanguageLexer
 from project.graph_query_language.LanguageParser import LanguageParser
 
 
+class ConvertToProgramListener(antlr4.ParseTreeListener):
+    def __init__(self):
+        self.tokens = list()
+
+    def visitTerminal(self, node):
+        self.tokens.append(node.getText())
+
+
+class CounterListener(antlr4.ParseTreeListener):
+    def __init__(self):
+        self.count = 0
+
+    def enterEveryRule(self, _):
+        self.count += 1
+
+
 def get_parser(inp):
-    input_stream = InputStream(inp)
+    input_stream = antlr4.InputStream(inp)
     lexer = LanguageLexer(input_stream)
-    stream = CommonTokenStream(lexer)
+    stream = antlr4.CommonTokenStream(lexer)
     return LanguageParser(stream)
 
 
 def parse(inp):
-    input_stream = InputStream(inp)
+    input_stream = antlr4.InputStream(inp)
     lexer = LanguageLexer(input_stream)
-    stream = CommonTokenStream(lexer)
+    stream = antlr4.CommonTokenStream(lexer)
     parser = LanguageParser(stream)
     return parser.prog()
 
@@ -30,7 +41,7 @@ def accepts(inp):
     return parser.getNumberOfSyntaxErrors() == 0
 
 
-def program_to_tree(program: str) -> tuple[ParserRuleContext, bool]:
+def program_to_tree(program: str) -> tuple[antlr4.ParserRuleContext, bool]:
     try:
         parser = get_parser(program)
         parse_tree = parser.prog()
@@ -40,26 +51,23 @@ def program_to_tree(program: str) -> tuple[ParserRuleContext, bool]:
         return None, False
 
 
-def tree_to_program(tree: ParserRuleContext) -> str:
-    if isinstance(tree, TerminalNode):
-        return tree.getText()
+def nodes_count(tree: antlr4.ParserRuleContext) -> int:
+    if tree is None:
+        return 0
 
-    program = ""
+    countListener = CounterListener()
+    treeWalker = antlr4.ParseTreeWalker()
+    treeWalker.walk(countListener, tree)
 
-    for child in tree.getChildren():
-        child_text = tree_to_program(child)
-        if program and child_text not in ("", "(", ")", "{", "}", ",", ";"):
-            program += " "
-        program += child_text
-    return program
+    return countListener.count
 
 
-def nodes_count(tree: ParserRuleContext) -> int:
-    if isinstance(tree, TerminalNode):
-        return 1
+def tree_to_program(tree: antlr4.ParserRuleContext) -> str:
+    if tree is None:
+        return ""
 
-    count = 1
+    convertToProgramListener = ConvertToProgramListener()
+    treeWalker = antlr4.ParseTreeWalker()
+    treeWalker.walk(convertToProgramListener, tree)
 
-    for child in tree.getChildren():
-        count += nodes_count(child)
-    return count
+    return " ".join(convertToProgramListener.tokens)
